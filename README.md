@@ -1,2 +1,3 @@
 # LP-Tracker-WNB
- LP Tracker based off of one made for the GGWP server
+ Tracks LP gained, games played, wins, losses and other stuff in a google sheet.
+ Created for the GGWP League Discord community for the Season Start event.
