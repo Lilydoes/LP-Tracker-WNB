@@ -1,11 +1,3 @@
-### THINGS TO GET DONE ###
-# 1. create function to syncronize local database and sheets (DONE)
-# 1.1 add players not in local database (DONE)
-# 1.2 remove players from local database that doesn't exist on sheets (DONE)
-# 2. Modify update_player_data so it adds ranks to sheets only
-# 3. Save the player data to the local database after each sheet has updated
-##########################
-
 ### IMPORTS ###
 
 import os.path
