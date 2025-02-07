@@ -11,12 +11,12 @@ class playerInfo:
         self.rank = rank
 
 # Creates player dictionary
-def createPlayerDict(sheet, player, region, id, tag, summoner_id, rank):
-    res_dict = {sheet: {player: playerInfo(region, id, tag, summoner_id, rank).toDict()}}
+def createPlayerDict(player, region, id, tag, summoner_id="", rank=""):
+    res_dict = {player: playerInfo(region, id, tag, summoner_id, rank).toDict()}
     return res_dict
 
 # Updates dictionary based on player dictionary
 def updatePlayerDict(main_dict, player_dict):
     res_dict = main_dict
-    sheet_key = list(player_dict.keys())[0]
-    return res_dict[sheet_key].update(player_dict[sheet_key])
+    res_dict.update(player_dict)
+    return res_dict

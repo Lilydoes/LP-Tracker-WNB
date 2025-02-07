@@ -4,6 +4,18 @@ from urllib.parse import urlencode
 # Numerical rank map
 ROMAN_TO_INT = {"I":1, "II":2, "III":3, "IV":4}
 
+# Function to extract riot id and region from op.gg urls
+def get_riot_id(url):
+    temp_container = []
+    player_container = []
+
+    temp_container = url.replace('https://www.op.gg/summoners/','').split('/')
+    player_container.append(temp_container[0])
+    temp_container = temp_container[1].replace('%20',' ').split('-')
+    player_container.append(temp_container[0])
+    player_container.append(temp_container[1])
+    return player_container
+
 # Function for a get request to the riot api
 def get_riot_api_request(url, params):
     try:
@@ -29,6 +41,7 @@ def get_riot_api_summoner_id(url_prefix, stored_player_data, params):
     summoner_id = player_summoner["id"]
 
     stored_player_data['summoner_id'] = summoner_id
+
 
 # Function to get player info from riot API
 def get_riot_api_player_info(route, player, stored_player_data, queue_type, params):
@@ -58,3 +71,4 @@ def get_riot_api_player_info(route, player, stored_player_data, queue_type, para
         combined_rank = player_solo_rank['tier'].casefold().capitalize() + " " + str(ROMAN_TO_INT[player_solo_rank['rank']]) + ", " + str(player_solo_rank['leaguePoints'])
             
     stored_player_data['rank'] = combined_rank
+    

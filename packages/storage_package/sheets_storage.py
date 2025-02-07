@@ -22,7 +22,6 @@ def get_sheet_data(sheet, sheet_id, sheet_range):
     
     if not values:
         print("No data found.")
-        return
     
     return values
 
@@ -37,3 +36,19 @@ def set_sheet_data(sheet, sheet_id, sheet_range, sheet_data):
     response = request.execute()
 
     return response
+
+# Function to get area of spreadsheet containing player information
+def get_ranges(sheet, sheet_id, count_range, range_start, range_column_end):
+    sheets = []
+    all_ranges = []
+    # Get end row with player info
+    container = get_sheet_data(sheet, sheet_id, count_range)
+    start_row = int(range_start[1:])
+    
+    for sheet in container:
+        end_row = str(start_row + int(sheet[1]) - 1)
+        range_players_end = range_column_end + end_row
+        sheets.append(sheet[0])
+        all_ranges.append(sheet[0] + "!" + range_start + ":" + range_players_end)
+
+    return [sheets, all_ranges]

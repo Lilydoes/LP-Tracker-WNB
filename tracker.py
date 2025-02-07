@@ -1,9 +1,9 @@
 ### THINGS TO GET DONE ###
-# 1. create function to syncronize local database and sheets
-# 1.1 add players not in local database
-# 1.2 remove players from local database that doesn't exist on sheets
+# 1. create function to syncronize local database and sheets (DONE)
+# 1.1 add players not in local database (DONE)
+# 1.2 remove players from local database that doesn't exist on sheets (DONE)
 # 2. Modify update_player_data so it adds ranks to sheets only
-# 3. Save the player data to the local database after all each sheet has updated
+# 3. Save the player data to the local database after each sheet has updated
 ##########################
 
 ### IMPORTS ###
@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 import time
 import datetime
 
+import re
+
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -21,27 +23,15 @@ from googleapiclient.errors import HttpError
 from packages.player_package.player import *
 from packages.storage_package.sheets_storage import *
 from packages.storage_package.local_storage import *
-from packages.riot_api_package.riot_api import get_riot_api_player_info
+from packages.riot_api_package.riot_api import get_riot_api_player_info, get_riot_id
+
+from vars.paths import *
+from vars.variables import *
 
 
 ### VARIABLES ###
 
-# Variable path
-VAR_PATH = "var/"
-
-# Load enviroment variables
-ENVIRONMENT_PATH = VAR_PATH + "keys.env"
 load_dotenv(ENVIRONMENT_PATH)
-
-# Paths to Google sheets credentials and log in token
-TOKEN_PATH = VAR_PATH + "token.json"
-CREDS_PATH = VAR_PATH + "service_credentials.json"
-
-# Path to locally stored player data
-LOCAL_DB_PATH = VAR_PATH + "players.json"
-
-# If modifying these scopes, delete the file token.json.
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Load riot api key
 PARAMS = {
@@ -50,26 +40,6 @@ PARAMS = {
 
 # Spreadsheet ID
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
-
-# Riot API queries
-ROUTE = "europe"
-
-# Spreadsheet ranges
-RANGE_PLAYERS_START = "A2"
-RANGE_PLAYERS_END = "I"
-
-# Player count sheet
-COUNT_SHEET = "Player Count"
-COUNT_RANGE = "A2:B7"
-COUNT_FULL = COUNT_SHEET + "!" + COUNT_RANGE
-
-# Time sheet
-TIME_SHEET = "Welcome"
-TIME_CELL = "L16:M16"
-TIME_FULL = TIME_SHEET + "!" + TIME_CELL
-
-# Ranked solo queue ID and type
-QUEUE_TYPE = "RANKED_SOLO_5x5"
 
 
 ### FUNCTIONS ###
@@ -86,89 +56,73 @@ def auth_sheets_api(creds, creds_path, scopes):
     service = build("sheets", "v4", credentials=creds)
     # Call the Sheets API
     sheet = service.spreadsheets()
-
     return sheet
 
-# Function to get area of spreadsheet containing player information
-def get_ranges(sheet, sheet_id, count_range, range_start, range_column_end):
-    sheets = []
-    all_ranges = []
-    # Get end row with player info
-    container = get_sheet_data(sheet, sheet_id, count_range)
-    start_row = int(range_start[1:])
-    
-    for sheet in container:
-        end_row = str(start_row + int(sheet[1]) - 1)
-        range_players_end = range_column_end + end_row
-        sheets.append(sheet[0])
-        all_ranges.append(sheet[0] + "!" + range_start + ":" + range_players_end)
-
-    return [sheets, all_ranges]
-
-# Function to extract riot id and region from op.gg urls
-def get_riot_id(url):
-    temp_container = []
-    player_container = []
-
-    temp_container = url.replace('https://www.op.gg/summoners/','').split('/')
-    player_container.append(temp_container[0])
-    temp_container = temp_container[1].replace('%20',' ').split('-')
-    player_container.append(temp_container[0])
-    player_container.append(temp_container[1])
-
-    return player_container
-
 # Function to get rank data from database for all players in stored_players_data
-def get_rank_data(route, players, stored_players_data, queue_type, params):
+def get_rank_data(route, stored_player_data, queue_type, params):
     rank_container = []
-    for player, i in players:
-        print(f"Updating player data and adding to sheet... {i+1}/{len(players)}", end="\r")
-        player_data = stored_players_data[player]
+    print("Getting rank data for players.")
+    for i, player in enumerate(stored_player_data.keys()):
+        print(f"Updating player data and adding to sheet... {i+1}/{len(stored_player_data)}", end="\r")
+        player_data = stored_player_data[player]
         # Update player information from RIOT API
         get_riot_api_player_info(route, player, player_data, queue_type, params)
 
         # Fill player data if player info contains data, otherwise return empty
-        if player_data['rank'] != '':
-            rank_container.append(player_data['rank'])
-        else:
-            print("")
-            print(f"Failed to fetch rank for {player}, please update manually.")
-        time.sleep(1)
+        rank_container.append(player_data['rank'])
         
+        time.sleep(1)  
     return rank_container
 
-# MAKE THIS FUNCTION WORK PLS
+# Synchronizes player data between google sheet and local database
+def synchronize_player_data(stored_player_data, sheet_players):
+    
+    print("Identifying discrepancies between local database and google sheet.")
+
+    dict_keys = list(stored_player_data.keys())
+
+    # Remove players from local database that doesn't exist in google sheet
+    for player in dict_keys:
+        exists = 0
+        for player_data in sheet_players:
+            if player in player_data:
+                exists = 1
+                break
+        
+        if exists == 0:
+            print(f"Player {player} in local database not found, removing from local database...", end=" ")
+            del stored_player_data[player]
+            print("SUCCESS")
+    
+    # Add all missing players from google sheet that doesn't exist in local database
+    for player in sheet_players:
+        try:
+            stored_player_data[player[0]]
+        except:
+            print(f"Player: {player[0]} not found, adding to database...", end=" ")
+            id_container = get_riot_id(player[6])
+            player_dict = createPlayerDict(player[0], id_container[0], id_container[1], id_container[2])
+            stored_player_data = updatePlayerDict(stored_player_data, player_dict)
+            print("SUCCESS")
+
+    print("Database and google sheet has been synchronized.")
 
 # Function to update players and stats to local storage and google sheets
-def update_player_data(sheet, sheet_players):
-    player_count = len(sheet_players)
-    stored_player_data = get_stored_player_data(LOCAL_DB_PATH)
-    empty_rows = []
+def update_player_data(sheet, sheet_id, sheet_range, stored_player_data, local_path, rank_column, route, queue_type, params):
 
-    get_rank_data(sheet_players[i], stored_player_data)
-
-    for i in range(0, player_count):
-        if not sheet_players[i]:
-            print(f"Row {i+1} empty...")
-            empty_rows.append(i)
-        
-        
-    
-    if empty_rows:
-        print("Removing empty rows from sheet...")
-        for i in empty_rows:
-            print(f"Removing row {i}...")
-            del sheet_players[i]
-        print("Empty rows removed.")
-    
-    # Sort players based on LP gained
-    #sheet_players.sort(key=lambda x: (int(x[6]), -int(x[8])), reverse=True)
+    # Get and save ranks for players
+    ranks = get_rank_data(route, stored_player_data, queue_type, params)
 
     # Update player information in local storage
-    set_stored_player_data(stored_player_data, LOCAL_DB_PATH)
+    set_stored_player_data(stored_player_data, local_path)
+
+    # Get rank range for specific sheet
+    sheet_range_split = sheet_range.split("!")
+    rank_range = sheet_range_split[0] + "!" + re.sub("[^0-9:]", rank_column, sheet_range_split[1])
 
     # Update player information in google sheets
-    set_sheet_data(sheet, SPREADSHEET_ID, range_players, sheet_players)
+    set_sheet_data(sheet, sheet_id, rank_range, ranks)
+
 
 ### Main program ###
 
@@ -180,25 +134,29 @@ def main():
     try:
         while (True):
             print(f"Update started at {[datetime.datetime.now().strftime("%H:%M CET %x")]}")
-            try:
-                print(f"Retrieving player count and sheets...")
-                [active_sheets, sheet_ranges] = get_ranges(sheet, COUNT_FULL, RANGE_PLAYERS_START, RANGE_PLAYERS_END)
-                for active_sheet, i in active_sheets:
-                    print(f"Updating player data in sheet: {active_sheet}")
-                    # Get all players from Google sheets
-                    print("Getting player data from spreadsheet...", end=" ")
-                    sheet_players = get_sheet_data(sheet, SPREADSHEET_ID, sheet_ranges[i])
-                    print("SUCCESS")
-                    print(f"{len(sheet_players)} player(s) found in sheet.")
-                    # Update Google sheets based off of data acquired from riot API
-                    update_player_data(sheet, sheet_players)
-                    print(f"Sheet: {active_sheet} has finished updating at {[datetime.datetime.now().strftime("%H:%M CET %x")]}")
-                    
-                    
-                    time.sleep(120)
-            except:
-                print("Error countered, retying in 5 minutes...")
-                time.sleep(300)
+            print(f"Retrieving player count and sheets...")
+            [active_sheets, sheet_ranges] = get_ranges(sheet, SPREADSHEET_ID, COUNT_FULL, RANGE_PLAYERS_START, RANGE_PLAYERS_END)
+            # Wait 5 seconds to collect ranges
+            time.sleep(5)
+            
+            for i, active_sheet in enumerate(active_sheets):
+                print(f"Updating player data in sheet: {active_sheet}")
+                # Get all players from Google sheets
+                print("Getting player data from spreadsheet...", end=" ")
+                sheet_players = get_sheet_data(sheet, SPREADSHEET_ID, sheet_ranges[i])
+                print("SUCCESS")
+                print(f"{len(sheet_players)} player(s) found in sheet.")
+                active_path = get_active_path(LOCAL_STORAGE_PATH, active_sheet)
+        
+                stored_player_data = get_stored_player_data(active_path)
+                # Syncronize sheet and local database
+                synchronize_player_data(stored_player_data, sheet_players)
+                # Update Google sheets based off of data acquired from riot API
+                update_player_data(sheet, SPREADSHEET_ID, sheet_ranges[i], stored_player_data, active_path, PLAYER_RANK_COLUMN, ROUTE, QUEUE_TYPE, PARAMS)
+                print(f"Sheet: {active_sheet} has finished updating at {[datetime.datetime.now().strftime("%H:%M CET %x")]}")
+                
+                time.sleep(120)
+            
             # Update update time in google sheets
             current_time = [[datetime.datetime.now().strftime("%H:%M CET %x")]]
             set_sheet_data(sheet, SPREADSHEET_ID, TIME_FULL, current_time)

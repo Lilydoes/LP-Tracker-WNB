@@ -1,3 +1,3 @@
 # LP-Tracker-WNB
- Tracks LP gained, games played, wins, losses and other stuff in a google sheet.
- Created for the GGWP League Discord community for the Season Start event.
+ Tracks current LP for players in the W&NB LOL Database google sheet.
+ Originally created for the GGWP League Discord community - Season Start event and later modified for the W&NB Database.
