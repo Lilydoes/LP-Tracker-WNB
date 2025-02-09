@@ -50,11 +50,19 @@ def auth_sheets_api(creds, creds_path, scopes):
     sheet = service.spreadsheets()
     return sheet
 
+# Get player names from sheet_players and add them to list
+def get_player_names(sheet_players):
+    player_names = []
+    for player in sheet_players:
+        player_names.append(player[0])
+    return player_names
+
 # Function to get rank data from database for all players in stored_players_data
-def get_rank_data(route, stored_player_data, queue_type, params):
+def get_rank_data(route, stored_player_data, players, queue_type, params):
     rank_container = []
     print("Getting rank data for players.")
-    for i, player in enumerate(stored_player_data.keys()):
+    
+    for i, player in enumerate(players):
         print(f"Updating player data and adding to sheet... {i+1}/{len(stored_player_data)}", end="\r")
         player_data = stored_player_data[player]
         # Update player information from RIOT API
@@ -105,10 +113,12 @@ def synchronize_player_data(stored_player_data, sheet_players):
     print("Database and google sheet has been synchronized.")
 
 # Function to update players and stats to local storage and google sheets
-def update_player_data(sheet, sheet_id, sheet_range, stored_player_data, local_path, rank_column, route, queue_type, params):
-
+def update_player_data(sheet, sheet_id, sheet_range, stored_player_data, sheet_players, local_path, rank_column, route, queue_type, params):
+    # Get player names in order of google sheet
+    players = get_player_names(sheet_players)
+    
     # Get and save ranks for players
-    ranks = get_rank_data(route, stored_player_data, queue_type, params)
+    ranks = get_rank_data(route, stored_player_data, players, queue_type, params)
 
     # Update player information in local storage
     set_stored_player_data(stored_player_data, local_path)
@@ -149,7 +159,7 @@ def main():
                 # Syncronize sheet and local database
                 synchronize_player_data(stored_player_data, sheet_players)
                 # Update Google sheets based off of data acquired from riot API
-                update_player_data(sheet, SPREADSHEET_ID, sheet_ranges[i], stored_player_data, active_path, PLAYER_RANK_COLUMN, ROUTE, QUEUE_TYPE, PARAMS)
+                update_player_data(sheet, SPREADSHEET_ID, sheet_ranges[i], stored_player_data, sheet_players, active_path, PLAYER_RANK_COLUMN, ROUTE, QUEUE_TYPE, PARAMS)
                 print(f"Sheet: {active_sheet} has finished updating at {[datetime.datetime.now().strftime("%H:%M GMT %x")]}")
                 
             

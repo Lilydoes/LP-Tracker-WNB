@@ -85,7 +85,11 @@ def get_riot_api_player_info(route, player, stored_player_data, queue_type, para
             
             combined_rank = tier + ' ' + rank + lp
             if stored_player_data['region'] != 'euw':
-                combined_rank += "(" + stored_player_data['region'].upper() + ")"
+                if stored_player_data['region'] == ('eun'):
+                    combined_rank += " (" + stored_player_data['region'].upper() + "e)"
+                else:
+                    combined_rank += " (" + stored_player_data['region'].upper() + ")"
+            
             
                 
         stored_player_data['rank'] = combined_rank
