@@ -80,6 +80,10 @@ def synchronize_player_data(stored_player_data, sheet_players):
         for player_data in sheet_players:
             if player in player_data:
                 exists = 1
+                if stored_player_data[player]['summoner_id'] == '':
+                    print(f"Player {player} has no summoner id, readding to local database...", end=" ")
+                    del stored_player_data[player]
+                    print("SUCCESS")
                 break
         
         if exists == 0:
@@ -146,15 +150,15 @@ def main():
                 synchronize_player_data(stored_player_data, sheet_players)
                 # Update Google sheets based off of data acquired from riot API
                 update_player_data(sheet, SPREADSHEET_ID, sheet_ranges[i], stored_player_data, active_path, PLAYER_RANK_COLUMN, ROUTE, QUEUE_TYPE, PARAMS)
-                print(f"Sheet: {active_sheet} has finished updating at {[datetime.datetime.now().strftime("%H:%M CET %x")]}")
+                print(f"Sheet: {active_sheet} has finished updating at {[datetime.datetime.now().strftime("%H:%M GMT %x")]}")
                 
-                time.sleep(120)
             
             # Update update time in google sheets
             current_time = [[datetime.datetime.now().strftime("%H:%M CET %x")]]
             set_sheet_data(sheet, SPREADSHEET_ID, TIME_FULL, current_time)
             print(f"Update finished at {current_time}")
-    
+
+            time.sleep(600)
     except HttpError as err:
         print(err)
 
