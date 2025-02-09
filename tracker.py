@@ -61,9 +61,10 @@ def get_rank_data(route, stored_player_data, queue_type, params):
         get_riot_api_player_info(route, player, player_data, queue_type, params)
 
         # Fill player data if player info contains data, otherwise return empty
-        rank_container.append(player_data['rank'])
+        rank_container.append([player_data['rank']])
         
-        time.sleep(1)  
+        time.sleep(1)
+    print("Updating player data and adding to sheet... SUCCESS")
     return rank_container
 
 # Synchronizes player data between google sheet and local database

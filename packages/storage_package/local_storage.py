@@ -4,7 +4,7 @@ import os.path
 # Check if data is valid json
 def is_json(json_data):
     try:
-        json.loads(json_data)
+        json.loads(json.dumps(json_data))
     except ValueError as e:
         return False
     return True
