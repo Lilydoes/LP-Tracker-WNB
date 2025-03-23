@@ -88,8 +88,13 @@ def synchronize_player_data(stored_player_data, sheet_players):
         for player_data in sheet_players:
             if player in player_data:
                 exists = 1
+                stored_riot_id = stored_player_data[player]['region'] + '/' + stored_player_data[player]['id'] + '-' + stored_player_data[player]['tag']
                 if stored_player_data[player]['summoner_id'] == '':
                     print(f"Player {player} has no summoner id, readding to local database...", end=" ")
+                    del stored_player_data[player]
+                    print("SUCCESS")
+                elif stored_riot_id != player_data[6]:
+                    print(f"Riot id mismatch for player {player}, readding to local database...", end=" ")
                     del stored_player_data[player]
                     print("SUCCESS")
                 break

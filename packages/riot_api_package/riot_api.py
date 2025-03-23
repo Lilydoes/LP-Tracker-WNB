@@ -32,7 +32,7 @@ def get_riot_api_request(url, params):
         return None
 
 # Get summoner id from riot api
-def get_riot_api_summoner_id(url_prefix, stored_player_data, params):
+def get_riot_api_summoner_id(url_prefix, player, stored_player_data, params):
     id = stored_player_data['id']
     tag = stored_player_data['tag']
 
@@ -46,8 +46,9 @@ def get_riot_api_summoner_id(url_prefix, stored_player_data, params):
         summoner_id = player_summoner['id']
 
         stored_player_data['summoner_id'] = summoner_id
+    else:
+        raise ValueError(f"Unable to retrieve player {player}'s account info, please check if riot id is valid.")
         
-
 
 # Function to get player info from riot API
 def get_riot_api_player_info(route, player, stored_player_data, queue_type, params):
@@ -60,7 +61,7 @@ def get_riot_api_player_info(route, player, stored_player_data, queue_type, para
     # Attempt to fetch encrypted summoner id for player if not found
     if stored_player_data['summoner_id'] == '':
         print(f"Player {player}'s summoner id not found, retrieving from riot and adding to local storage...", end=' ')
-        get_riot_api_summoner_id(url_prefix, stored_player_data, params)
+        get_riot_api_summoner_id(url_prefix, player, stored_player_data, params)
         print('SUCCESS')
     
     # Attempt to fetch rank if encrypted summoner id for player exists
