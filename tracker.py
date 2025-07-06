@@ -89,8 +89,8 @@ def synchronize_player_data(stored_player_data, sheet_players):
             if player in player_data:
                 exists = 1
                 stored_riot_id = stored_player_data[player]['region'] + '/' + stored_player_data[player]['id'] + '-' + stored_player_data[player]['tag']
-                if stored_player_data[player]['summoner_id'] == '':
-                    print(f"Player {player} has no summoner id, readding to local database...", end=" ")
+                if stored_player_data[player]['puuid'] == '':
+                    print(f"Player {player} has no puuid, readding to local database...", end=" ")
                     del stored_player_data[player]
                     print("SUCCESS")
                 elif stored_riot_id != player_data[6]:
@@ -118,21 +118,23 @@ def synchronize_player_data(stored_player_data, sheet_players):
     print("Database and google sheet has been synchronized.")
 
 # Function to update players and stats to local storage and google sheets
-def update_player_data(sheet, sheet_id, sheet_range, stored_player_data, sheet_players, local_path, rank_column, route, queue_type, params):
+def update_player_data(sheet, sheet_id, sheet_range, stored_player_data, sheet_players, local_path, id_column, rank_column, route, queue_type, params):
     # Get player names in order of google sheet
     players = get_player_names(sheet_players)
     
     # Get and save ranks for players
     ranks = get_rank_data(route, stored_player_data, players, queue_type, params)
-
+    
     # Update player information in local storage
     set_stored_player_data(stored_player_data, local_path)
 
-    # Get rank range for specific sheet
+    # Get id and rank range for specific sheet
     sheet_range_split = sheet_range.split("!")
+    id_range = sheet_range_split[0] + "!" + re.sub("[^0-9:]", id_column, sheet_range_split[1])
     rank_range = sheet_range_split[0] + "!" + re.sub("[^0-9:]", rank_column, sheet_range_split[1])
 
     # Update player information in google sheets
+    set_sheet_data(sheet, sheet_id, id_range, ids)
     set_sheet_data(sheet, sheet_id, rank_range, ranks)
 
 
@@ -164,7 +166,7 @@ def main():
                 # Syncronize sheet and local database
                 synchronize_player_data(stored_player_data, sheet_players)
                 # Update Google sheets based off of data acquired from riot API
-                update_player_data(sheet, SPREADSHEET_ID, sheet_ranges[i], stored_player_data, sheet_players, active_path, PLAYER_RANK_COLUMN, ROUTE, QUEUE_TYPE, PARAMS)
+                update_player_data(sheet, SPREADSHEET_ID, sheet_ranges[i], stored_player_data, sheet_players, active_path, PLAYER_ID_COLUMN, PLAYER_RANK_COLUMN, ROUTE, QUEUE_TYPE, PARAMS)
                 print(f"Sheet: {active_sheet} has finished updating at {[datetime.datetime.now().strftime("%H:%M GMT %x")]}")
                 
             

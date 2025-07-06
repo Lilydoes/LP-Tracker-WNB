@@ -3,16 +3,16 @@ class playerInfo:
     def toDict(self):
         return self.__dict__
 
-    def __init__(self, region, id, tag, summoner_id, rank):
+    def __init__(self, region, id, tag, puuid, rank):
         self.region = region
         self.id = id
         self.tag = tag
-        self.summoner_id = summoner_id
+        self.puuid = puuid
         self.rank = rank
 
 # Creates player dictionary
-def createPlayerDict(player, region, id, tag, summoner_id="", rank=""):
-    res_dict = {player: playerInfo(region, id, tag, summoner_id, rank).toDict()}
+def createPlayerDict(player, region, id, tag, puuid="", rank=""):
+    res_dict = {player: playerInfo(region, id, tag, puuid, rank).toDict()}
     return res_dict
 
 # Updates dictionary based on player dictionary

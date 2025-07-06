@@ -27,6 +27,9 @@ COUNT_FULL = COUNT_SHEET + "!" + COUNT_RANGE
 # Player rank column
 PLAYER_RANK_COLUMN = "F"
 
+# Player id column
+PLAYER_ID_COLUMN = "G"
+
 # Time sheet
 TIME_SHEET = "Welcome!"
 TIME_CELL = "L16:M16"

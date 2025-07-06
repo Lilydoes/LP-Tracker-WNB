@@ -31,8 +31,8 @@ def get_riot_api_request(url, params):
         print(f'Issue getting account information from API')
         return None
 
-# Get summoner id from riot api
-def get_riot_api_summoner_id(url_prefix, player, stored_player_data, params):
+# Get puuid id from riot api
+def get_riot_api_puuid(url_prefix, player, stored_player_data, params):
     id = stored_player_data['id']
     tag = stored_player_data['tag']
 
@@ -40,12 +40,8 @@ def get_riot_api_summoner_id(url_prefix, player, stored_player_data, params):
     player_account = get_riot_api_request(get_account_request_url, params)
     if player_account != None:
         puuid = player_account['puuid']
-        get_summoner_request_url = url_prefix[1] + f'/lol/summoner/v4/summoners/by-puuid/{puuid}'
-        player_summoner = get_riot_api_request(get_summoner_request_url, params)
 
-        summoner_id = player_summoner['id']
-
-        stored_player_data['summoner_id'] = summoner_id
+        stored_player_data['puuid'] = puuid
     else:
         raise ValueError(f"Unable to retrieve player {player}'s account info, please check if riot id is valid.")
         
@@ -58,39 +54,40 @@ def get_riot_api_player_info(route, player, stored_player_data, queue_type, para
     url_prefix.append(f'https://{route}.api.riotgames.com')
     url_prefix.append(f'https://{region}1.api.riotgames.com')    
 
-    # Attempt to fetch encrypted summoner id for player if not found
-    if stored_player_data['summoner_id'] == '':
-        print(f"Player {player}'s summoner id not found, retrieving from riot and adding to local storage...", end=' ')
-        get_riot_api_summoner_id(url_prefix, player, stored_player_data, params)
+    # Attempt to fetch encrypted puuid id for player if not found
+    if stored_player_data['puuid'] == '':
+        print(f"Player {player}'s puuid id not found, retrieving from riot and adding to local storage...", end=' ')
+        get_riot_api_puuid(url_prefix, player, stored_player_data, params)
         print('SUCCESS')
     
-    # Attempt to fetch rank if encrypted summoner id for player exists
-    if stored_player_data['summoner_id'] != '':
-        get_league_request_url = url_prefix[1] + f"/lol/league/v4/entries/by-summoner/{stored_player_data['summoner_id']}"
+    # Attempt to fetch rank if encrypted puuid id for player exists
+    if stored_player_data['puuid'] != '':
+        get_league_request_url = url_prefix[1] + f"/lol/league/v4/entries/by-puuid/{stored_player_data['puuid']}"
         player_ranks = get_riot_api_request(get_league_request_url, params)
-        
-        player_solo_rank = []
-        for i in range(0, len(player_ranks)):
-            if player_ranks[i]['queueType'] == queue_type:
-                player_solo_rank = player_ranks[i]
-                break
-        
-        if player_solo_rank == []:
-            combined_rank = "Complete placements"
+        if player_ranks != None:
+            player_solo_rank = []
+            for i in range(0, len(player_ranks)):
+                if player_ranks[i]['queueType'] == queue_type:
+                    player_solo_rank = player_ranks[i]
+                    break
+            
+            if player_solo_rank == []:
+                combined_rank = "Complete placements"
+            else:
+                tier = player_solo_rank['tier'].casefold().capitalize()
+                rank = ''
+                if tier not in NO_RANK:
+                    rank = str(ROMAN_TO_INT[player_solo_rank['rank']]) + ' '
+                lp = str(player_solo_rank['leaguePoints']) + ' LP'
+                
+                combined_rank = tier + ' ' + rank + lp
+                if stored_player_data['region'] != 'euw':
+                    if stored_player_data['region'] == ('eun'):
+                        combined_rank += " (" + stored_player_data['region'].upper() + "e)"
+                    else:
+                        combined_rank += " (" + stored_player_data['region'].upper() + ")"
         else:
-            tier = player_solo_rank['tier'].casefold().capitalize()
-            rank = ''
-            if tier not in NO_RANK:
-                rank = str(ROMAN_TO_INT[player_solo_rank['rank']]) + ' '
-            lp = str(player_solo_rank['leaguePoints']) + ' LP'
-            
-            combined_rank = tier + ' ' + rank + lp
-            if stored_player_data['region'] != 'euw':
-                if stored_player_data['region'] == ('eun'):
-                    combined_rank += " (" + stored_player_data['region'].upper() + "e)"
-                else:
-                    combined_rank += " (" + stored_player_data['region'].upper() + ")"
-            
+            raise ValueError(f"Unable to retrieve player {player}'s rank information, please check if riot id is valid and or the player has played any games recently.")
             
                 
         stored_player_data['rank'] = combined_rank
