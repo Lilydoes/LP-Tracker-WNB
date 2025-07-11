@@ -31,7 +31,7 @@ def get_riot_api_request(url, params):
         print(f'Issue getting account information from API')
         return None
 
-# Get puuid id from riot api
+# Get puuid from riot api
 def get_riot_api_puuid(url_prefix, player, stored_player_data, params):
     id = stored_player_data['id']
     tag = stored_player_data['tag']
@@ -42,9 +42,42 @@ def get_riot_api_puuid(url_prefix, player, stored_player_data, params):
         puuid = player_account['puuid']
 
         stored_player_data['puuid'] = puuid
+        return True
     else:
-        raise ValueError(f"Unable to retrieve player {player}'s account info, please check if riot id is valid.")
+        print(f"Unable to retrieve player {player}'s account info, please check if riot id is valid.")
+        return False
         
+# Get riot id from puuid
+def get_riot_api_id(route, player, stored_player_data, params):
+    puuid = stored_player_data['puuid']
+    
+    url_prefix = []
+    url_prefix.append(f'https://{route}.api.riotgames.com')
+
+    get_account_request_url = url_prefix[0] + f'/riot/account/v1/accounts/by-puuid/{puuid}'
+    player_account = get_riot_api_request(get_account_request_url, params)
+    if player_account != None:
+        id = player_account['gameName']
+        tag = player_account['tagLine']
+
+        # Retreieve active region for player from puuid
+        get_account_request_url = url_prefix[0] + f'/riot/account/v1/region/by-game/lol/by-puuid/{puuid}'
+        player_account = get_riot_api_request(get_account_request_url, params)
+        if player_account != None:
+            region = player_account['region'].split('1')[0]
+            if region == 'eun':
+                region += 'e'
+
+            stored_player_data['id'] = id
+            stored_player_data['tag'] = tag
+            stored_player_data['region'] = region
+            return True
+        else:
+            print(f"Unable to retrieve region information for player {player} from their puuid, ensure it is correct.")
+            return False
+    else:
+        print(f"Unable to retrieve riot id for player {player} from their puuid, ensure it is correct.")
+        return False
 
 # Function to get player info from riot API
 def get_riot_api_player_info(route, player, stored_player_data, queue_type, params):
@@ -54,13 +87,17 @@ def get_riot_api_player_info(route, player, stored_player_data, queue_type, para
     url_prefix.append(f'https://{route}.api.riotgames.com')
     url_prefix.append(f'https://{region}1.api.riotgames.com')    
 
-    # Attempt to fetch encrypted puuid id for player if not found
+    # Attempt to fetch encrypted puuid for player if not found
     if stored_player_data['puuid'] == '':
-        print(f"Player {player}'s puuid id not found, retrieving from riot and adding to local storage...", end=' ')
-        get_riot_api_puuid(url_prefix, player, stored_player_data, params)
-        print('SUCCESS')
-    
-    # Attempt to fetch rank if encrypted puuid id for player exists
+        print(f"Player {player}'s puuid not found, retrieving from riot and adding to local storage...", end=' ')
+        return_val = get_riot_api_puuid(url_prefix, player, stored_player_data, params)
+        if return_val:
+            print('SUCCESS')
+        else:
+            print('FAILED')
+
+
+    # Attempt to fetch rank if encrypted puuid for player exists
     if stored_player_data['puuid'] != '':
         get_league_request_url = url_prefix[1] + f"/lol/league/v4/entries/by-puuid/{stored_player_data['puuid']}"
         player_ranks = get_riot_api_request(get_league_request_url, params)

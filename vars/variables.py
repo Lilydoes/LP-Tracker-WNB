@@ -8,6 +8,7 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
 # Riot API queries
 ROUTE = "europe"
+ROUTE_ALT = "americas"
 
 # Ranked solo queue ID and type
 QUEUE_TYPE = "RANKED_SOLO_5x5"
