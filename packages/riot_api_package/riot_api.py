@@ -83,6 +83,9 @@ def get_riot_api_id(route, player, stored_player_data, params):
 def get_riot_api_player_info(route, player, stored_player_data, queue_type, params):
     region = stored_player_data['region']
     
+    if region == 'eune':
+        region = region[:-1]
+    
     url_prefix = []
     url_prefix.append(f'https://{route}.api.riotgames.com')
     url_prefix.append(f'https://{region}1.api.riotgames.com')    
